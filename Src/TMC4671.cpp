@@ -106,7 +106,7 @@ bool TMC4671::initialize(){
 
 	writeReg(1, 1);
 	if(readReg(0) == 0x00010000){
-		/* Slow down SPI if old TMC detected
+		/* Slow down SPI if old TMC engineering sample is detected
 		 * The first version has a high chance of glitches of the MSB
 		 * when high spi speeds are used.
 		 * This can cause problems for some operations.
@@ -224,6 +224,9 @@ void TMC4671::setPhiE_ext(int16_t phiE){
 	writeReg(0x1C, phiE);
 }
 
+/*
+ * Aligns ABN encoders by forcing an angle with high current and calculating the offset
+ */
 void TMC4671::bangInitABN(int16_t power){
 	PhiE lastphie = getPhiEtype();
 	MotionMode lastmode = getMotionMode();
@@ -289,6 +292,7 @@ void TMC4671::setup_HALL(TMC4671HALLConf hallconf){
 
 	//conf.motconf.phiEsource = PhiE::hall;
 }
+
 
 void TMC4671::calibrateAdcScale(){
 

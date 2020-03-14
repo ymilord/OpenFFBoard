@@ -220,7 +220,6 @@ void FFBWheel::setDrvType(uint8_t drvtype){
 		drv = nullptr;
 	}
 
-	//
 	this->drv = drv_chooser.Create((uint16_t)drvtype);
 	if(this->drv == nullptr){
 		return;
@@ -230,21 +229,23 @@ void FFBWheel::setDrvType(uint8_t drvtype){
 	// Special handling for tmc4671.
 	if(this->conf.drvtype == TMC4671::info.id){
 		setupTMC4671();
-
-		// Add tmc to encoder sources if not present
-		if(!enc_chooser.isValidClassId(TMC4671::info.id)){
-			TMC4671* drv = static_cast<TMC4671*>(this->drv);
-			encoder_sources.push_back(add_class_ref<TMC4671,Encoder>(static_cast<Encoder*>(drv)));
-			setEncType(TMC4671::info.id); // Auto preset tmc as encoder
-		}
-	}else{
-		// Check if encoder sources must be removed
-		for (auto it = encoder_sources.begin(); it != encoder_sources.end(); it++) {
-			// Delete tmc from encoder sources if present
-			if(it->info.id == TMC4671::info.id){
-				encoder_sources.erase(it);
-				setEncType(0); // reset encoder
-				break;
+	}
+	// Add driver to encoder sources if also implements encoder
+	Encoder* drvenc = dynamic_cast<Encoder*>(drv);
+	if(drvenc != nullptr){
+		if(!enc_chooser.isValidClassId(drv->getInfo().id)){
+			//TMC4671* drv = static_cast<TMC4671*>(this->drv);
+			//encoder_sources.push_back(add_class_ref<TMC4671,Encoder>(static_cast<Encoder*>(drv)));
+			encoder_sources.push_back(make_class_entry<Encoder>(drv->getInfo(),drvenc));
+			setEncType(drv->getInfo().id); // Auto preset driver as encoder
+		}else{
+			for (auto it = encoder_sources.begin(); it != encoder_sources.end(); it++) {
+				// Delete drv from encoder sources if present
+				if(it->info.id == drv->getInfo().id){
+					encoder_sources.erase(it);
+					setEncType(0); // reset encoder
+					break;
+				}
 			}
 		}
 	}
@@ -272,7 +273,7 @@ void FFBWheel::setEncType(uint8_t enctype){
 
 
 	if(enc_chooser.isValidClassId(enctype)){
-		if(enc != nullptr){
+		if(enc != nullptr && enc->getInfo().id != enctype && enctype != drv->getInfo().id){
 			delete enc;
 			enc = nullptr;
 		}
